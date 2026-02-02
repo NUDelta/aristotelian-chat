@@ -3,6 +3,7 @@ import { useSession } from '../../context/useSession'
 import { ChatMessageList } from '../chat/ChatMessageList'
 import { parseModelOutput, extractSummary } from '../../utils/parseModelOutput'
 import { createChatMessage } from '../../utils/messageUtils'
+import type { ChatMessage } from '../../context/SessionContextDef'
 import { useAbortController } from '../../hooks/useAbortController'
 import { useVoice } from '../../hooks/useVoice'
 import { SpeakingIndicator } from '../chat/SpeakingIndicator'
@@ -60,6 +61,9 @@ export function Tab1DefineExperience() {
     }
 
     try {
+      // Check if this is the first message in voice mode
+      const isFirstMessageInVoiceMode = inputMode === 'voice' && tab1History.length === 0 && !forceSummary
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,6 +72,8 @@ export function Tab1DefineExperience() {
           experience,
           history: updatedHistory,
           forceSummary,
+          isVoiceMode: inputMode === 'voice',
+          isFirstVoiceMessage: isFirstMessageInVoiceMode,
         }),
         signal,
       })
@@ -237,6 +243,45 @@ export function Tab1DefineExperience() {
       hasInitializedRef.current = currentExperience
       // Send initial request to get first question
       const startConversation = async () => {
+        // Always send welcome message first (both text and voice)
+        let welcomeHistory: ChatMessage[] = []
+        const welcomeSignal = createAbortSignal()
+        setIsLoading(true)
+        try {
+          const welcomeResponse = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode: 'define-experience',
+              experience,
+              history: [],
+              forceSummary: false,
+              isVoiceMode: inputMode === 'voice',
+              welcomeOnly: true, // Flag to get only welcome, no question yet
+            }),
+            signal: welcomeSignal,
+          })
+
+          if (!welcomeResponse.ok) {
+            throw new Error('Failed to get welcome message')
+          }
+
+          const welcomeData = await welcomeResponse.json()
+          const welcomeText = welcomeData.rawText || welcomeData.assistantMessage || ''
+
+          if (welcomeText.trim()) {
+            const welcomeMessage = createChatMessage('assistant', welcomeText.trim())
+            welcomeHistory = [welcomeMessage]
+            setTab1History(welcomeHistory)
+          }
+        } catch (error) {
+          if (error instanceof Error && error.name !== 'AbortError') {
+            console.error('Error getting welcome message:', error)
+          }
+          // Continue to first question even if welcome fails
+        }
+
+        // Now send the first question
         const signal = createAbortSignal()
         setIsLoading(true)
         try {
@@ -246,8 +291,9 @@ export function Tab1DefineExperience() {
             body: JSON.stringify({
               mode: 'define-experience',
               experience,
-              history: [],
+              history: welcomeHistory, // Include welcome
               forceSummary: false,
+              isVoiceMode: inputMode === 'voice',
             }),
             signal,
           })
@@ -297,7 +343,24 @@ export function Tab1DefineExperience() {
           const assistantMessage = createChatMessage('assistant', messageContent)
           console.log('Created assistant message:', assistantMessage)
 
-          setTab1History([assistantMessage])
+          // If we already have a welcome message, handle it specially for voice mode
+          if (welcomeHistory.length > 0 && inputMode === 'voice') {
+            // In voice mode, speak the welcome first, then add the question after it finishes
+            const welcomeMessage = welcomeHistory[0]
+            speakText(welcomeMessage.content, () => {
+              // After welcome finishes speaking, add the first question
+              setTab1History((prevHistory) => [...prevHistory, assistantMessage])
+            })
+          } else {
+            // For text mode or if no welcome, just add the message normally
+            setTab1History((prevHistory) => {
+              if (prevHistory.length > 0) {
+                return [...prevHistory, assistantMessage]
+              } else {
+                return [assistantMessage]
+              }
+            })
+          }
 
           // Check for summary (unlikely on first message, but handle it)
           const summary = extractSummary(parsed)
@@ -323,7 +386,7 @@ export function Tab1DefineExperience() {
 
       startConversation()
     }
-  }, [experience, tab1History.length, tab1Summary, isLoading, setTab1History, setTab1Summary, setIsFinishedTab1, createAbortSignal, isAborted])
+  }, [experience, tab1History.length, tab1Summary, isLoading, inputMode, setTab1History, setTab1Summary, setIsFinishedTab1, createAbortSignal, isAborted, speakText])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

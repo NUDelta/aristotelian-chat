@@ -30,6 +30,9 @@ type ChatRequest = {
   myIdeas?: string[]
   allSuggestedIdeas?: string[]
   summary?: string
+  isVoiceMode?: boolean
+  isFirstVoiceMessage?: boolean
+  welcomeOnly?: boolean
 }
 
 const VALID_MODES = ['define-experience', 'generate-ideas', 'challenge-biases'] as const
@@ -164,6 +167,9 @@ function validateChatRequest(body: unknown): { valid: boolean; error?: string; d
       myIdeas: req.myIdeas as string[] | undefined,
       allSuggestedIdeas: req.allSuggestedIdeas as string[] | undefined,
       summary: req.summary as string | undefined,
+      isVoiceMode: req.isVoiceMode as boolean | undefined,
+      isFirstVoiceMessage: req.isFirstVoiceMessage as boolean | undefined,
+      welcomeOnly: req.welcomeOnly as boolean | undefined,
     },
   }
 }
@@ -198,9 +204,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let messages: ChatMessage[] = []
 
     if (body.mode === 'define-experience') {
+      const voiceModeInstructions = body.isVoiceMode 
+        ? `\n\nIMPORTANT: You are having a SPOKEN conversation, not a written one. The user is speaking to you, and you are speaking back. 
+- Be more conversational, natural, and warm in your responses
+- Use a speaking tone - shorter sentences, more natural phrasing, as if you're talking face-to-face
+- The user's responses are spoken, so they may be more casual, include pauses, or have slight imperfections - understand the intent
+- Respond as if you're having a real conversation, not writing an email or formal text
+- Keep responses concise and conversational - people speak more briefly than they write\n`
+        : ''
+
+      const welcomeMessageInstruction = body.welcomeOnly
+        ? `\n\nSPECIAL INSTRUCTION: This is a WELCOME-ONLY message for the start of the conversation. Provide ONLY the following welcome message (use this exact wording, but feel free to make it feel natural and conversational):
+
+"Hey, let's talk through this experience together. My goal is to better understand you and what the experience means to you. Feel free to respond candidly to any question I ask. I don't know is a perfect response as well."
+
+Do NOT ask any questions yet - this is just the welcome message. Keep it warm and conversational.\n`
+        : ''
+
       systemPrompt = `You are a thoughtful, curious guide helping someone explore what the experience of "${body.experience}" truly means to them personally.
 
-Be genuinely curious and empathetic. Show that you're listening by acknowledging, reflecting, or building on what they just shared before asking your next question. This creates a natural, flowing conversation.
+Be genuinely curious and empathetic. Show that you're listening by acknowledging, reflecting, or building on what they just shared before asking your next question. This creates a natural, flowing conversation.${voiceModeInstructions}${welcomeMessageInstruction}
 
 IMPORTANT: Ask only ONE question at a time. 
 
