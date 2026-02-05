@@ -204,7 +204,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let messages: ChatMessage[] = []
 
     if (body.mode === 'define-experience') {
-      const voiceModeInstructions = body.isVoiceMode 
+      const voiceModeInstructions = body.isVoiceMode
         ? `\n\nIMPORTANT: You are having a SPOKEN conversation, not a written one. The user is speaking to you, and you are speaking back. 
 - Be more conversational, natural, and warm in your responses
 - Use a speaking tone - shorter sentences, more natural phrasing, as if you're talking face-to-face
@@ -221,25 +221,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 Do NOT ask any questions yet - this is just the welcome message. Keep it warm and conversational.\n`
         : ''
 
-      systemPrompt = `You are a thoughtful, curious guide helping someone explore what the experience of "${body.experience}" truly means to them personally.
+      systemPrompt = `You are a thoughtful, curious guide helping someone explore what the experience of "${body.experience}" truly means to them personally and why they are struggling with it presently.
 
 Be genuinely curious and empathetic. Show that you're listening by acknowledging, reflecting, or building on what they just shared before asking your next question. This creates a natural, flowing conversation.${voiceModeInstructions}${welcomeMessageInstruction}
 
 IMPORTANT: Ask only ONE question at a time. 
 
 For your FIRST question (when there's no conversation history yet):
-- Start with a concrete, experiential question - ask about specific moments, memories, feelings, or situations
-- Avoid meta-questions like "what does X mean to you" or "how would you define X"
-- Instead, ask about real experiences: "What moments come to mind when you think of [experience]?" or "Can you recall a time when you felt [experience]?"
-- Make it feel natural and conversational, not like a survey
+- Start by asking the user to describe the experience they are exploring in their own life.
+- The user might express things they have tried and give insights as to why they are struggling with it. 
+- The question should be more insightful and thought-provoking than a simple question like "What does the experience of writing your wedding vows mean to you personally?"
+- The first question should be tailored to the actual experience itself, not a generic question like "Can you tell me a bit more about writing your wedding vows? Tell me a bit about what you've tried, what you like don't like, and why you're struggling with it?"
 
-For FOLLOW-UP questions (when there's already conversation history):
+For FOLLOW-UP questions before the stuggle is clear:
+- continue to ask a single question at a time that help the user to clarify their struggle with the experience.
+- dig deeper into why some things have worked and some things have not worked for them.
+
+For later FOLLOW-UP questions (when the stuggle is understood):
 - First, acknowledge what they just said - reflect back, show understanding, or build on their response
 - Then ask a single, thoughtful, open-ended question that digs deeper
 - Continue exploring through concrete experiences, feelings, and memories
 - Avoid asking them to define or explain abstractly - help them discover through examples and stories
+- IMPORTANT: Do not deviate from the topic of the experience or the user's struggle with it.
 
-Continue this pattern of listening, acknowledging, and asking one concrete question at a time until you feel you've truly understood their personal interpretation of this experience.
+Continue this pattern of listening, acknowledging, and asking one concrete question at a time until you feel you've truly understood their personal interpretation of this experience and why they are struggling with it presently, and can offer
+the user with an explanation of how they currently view the experience, and how this world view might be limiting their ability to move forward with this experience.
+
+The user might mention many ideas, before summarizing, make sure there are no other ideas mentioned by the user in relation to the eperience that have yet to be discussed. 
 
 When you're ready to provide a summary, first acknowledge their sharing, then output a JSON marker block like this:
 
@@ -279,7 +287,7 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
           .join('\n\n')
         contextText = `Here is the full conversation from Tab 1 where the user explored their experience:\n\n${historyText}\n\n`
       }
-      
+
       // Use summary if provided, otherwise fall back to experience name
       const summaryText = body.summary || body.experience || 'No summary available'
 
@@ -311,7 +319,7 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
       \`\`\`json
       {"type":"suggested_ideas","items":["idea1","idea2",...]}
       \`\`\``
-      
+
       messages = [
         {
           role: 'user',
@@ -330,7 +338,7 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
           .join('\n\n')
         contextText = `Here is the full conversation from Tab 1 where the user explored their experience:\n\n${historyText}\n\n`
       }
-      
+
       const summaryText = body.summary || body.experience || 'No summary available'
 
       systemPrompt = `You are a reflective bias analyst. The user is exploring the experience of "${body.experience}".
@@ -402,7 +410,7 @@ Rules:
     })
 
     const rawText = completion.choices[0]?.message?.content || ''
-    
+
     // Log for debugging (remove in production if needed)
     if (!rawText) {
       console.error('OpenAI returned empty content:', {
@@ -434,14 +442,14 @@ Rules:
     }
   } catch (error) {
     console.error('OpenAI API error:', error)
-    
+
     // Check for common errors
     let errorMessage = 'Unknown error'
     let statusCode = 500
-    
+
     if (error instanceof Error) {
       errorMessage = error.message
-      
+
       // Check for missing API key
       if (errorMessage.includes('API key') || !process.env.OPENAI_API_KEY) {
         errorMessage = 'OpenAI API key is missing. Please set OPENAI_API_KEY environment variable.'
@@ -458,16 +466,16 @@ Rules:
         statusCode = 429
       }
     }
-    
+
     // Always show error details in development, or if it's a known error
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'development'
-    
+
     return res.status(statusCode).json({
       error: 'Failed to process request',
       message: errorMessage,
-      ...(isDevelopment && { 
+      ...(isDevelopment && {
         details: error instanceof Error ? error.stack : String(error),
-        hasApiKey: !!process.env.OPENAI_API_KEY 
+        hasApiKey: !!process.env.OPENAI_API_KEY
       }),
     })
   }
