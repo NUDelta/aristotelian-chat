@@ -350,6 +350,7 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
       2. Instead, identify the UNDERLYING THEMES, VALUES, and PATTERNS from the user's interpretation.
       3. EXTEND those themes into NEW, CREATIVE ideas that align with those patterns but are distinct from what was already discussed.
       4. Think about what the themes suggest about the user's deeper needs and preferences, then generate ideas that serve those needs in fresh ways.
+      5. Do a pass over the ideas and identify if they sound like AI-generated ideas, if so, remove them and generate new ideas that feel more human and natural.
       
       Examples of what NOT to do:
       - If the user mentioned "going to a park," don't suggest "visit a different park" or "go to Central Park"
@@ -404,15 +405,16 @@ You are given:
 - The full conversation where they defined what this experience means to them.
 - A summary of their interpretation.
 - Their own ideas for places/activities.
+- User feedback on specific ideas (if any).
 - All ideas (their own + AI-suggested).
 
 Your job:
 
-1) Identify 3–7 meaningful biases or assumptions in how they interpret this experience and how they generate ideas.
+1) Identify 3–7 meaningful biases or assumptions in how they interpret this experience and how they generate ideas. Focus on biases that coulb limit their ability to meaningfully engage with this experience or solve the problem they are facing.
 
 2) For EACH bias:
    - Give it a short title.
-   - Provide a rich explanation in 2–4 sentences that uses concrete examples or phrases from their conversation, summary, or ideas.
+   - Provide a rich explanation in 2–4 sentences that uses concrete examples or phrases from their conversation, summary, or ideas and descries how a shift in this bias could help them to better engage with this experience or solve the problem they are facing.
    - Generate 3–6 ideas that specifically challenge THIS bias.
 
 3) Return all biases in a single JSON marker block like:
