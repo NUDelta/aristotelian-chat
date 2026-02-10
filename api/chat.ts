@@ -29,6 +29,7 @@ type ChatRequest = {
   forceSummary?: boolean
   myIdeas?: string[]
   allSuggestedIdeas?: string[]
+  ideaComments?: Record<string, string>
   summary?: string
   isVoiceMode?: boolean
   isFirstVoiceMessage?: boolean
@@ -39,6 +40,7 @@ const VALID_MODES = ['define-experience', 'generate-ideas', 'challenge-biases'] 
 const MAX_EXPERIENCE_LENGTH = 500
 const MAX_HISTORY_LENGTH = 100
 const MAX_IDEAS_LENGTH = 100
+const MAX_COMMENT_LENGTH = 1000
 
 function validateChatRequest(body: unknown): { valid: boolean; error?: string; data?: ChatRequest } {
   // Check if body exists
@@ -150,6 +152,34 @@ function validateChatRequest(body: unknown): { valid: boolean; error?: string; d
     }
   }
 
+  // Validate ideaComments if provided
+  if (req.ideaComments !== undefined) {
+    if (typeof req.ideaComments !== 'object' || req.ideaComments === null || Array.isArray(req.ideaComments)) {
+      return { valid: false, error: 'ideaComments must be an object mapping idea text to comment strings' }
+    }
+    const entries = Object.entries(req.ideaComments as Record<string, unknown>)
+    if (entries.length > MAX_IDEAS_LENGTH) {
+      return {
+        valid: false,
+        error: `ideaComments cannot exceed ${MAX_IDEAS_LENGTH} items`,
+      }
+    }
+    for (const [idea, comment] of entries) {
+      if (typeof idea !== 'string' || typeof comment !== 'string') {
+        return {
+          valid: false,
+          error: 'ideaComments must be a mapping from idea text (string) to comment (string)',
+        }
+      }
+      if (comment.length > MAX_COMMENT_LENGTH) {
+        return {
+          valid: false,
+          error: `Comments must be ${MAX_COMMENT_LENGTH} characters or less`,
+        }
+      }
+    }
+  }
+
   // Validate summary if provided
   if (req.summary !== undefined) {
     if (typeof req.summary !== 'string') {
@@ -166,6 +196,7 @@ function validateChatRequest(body: unknown): { valid: boolean; error?: string; d
       forceSummary: req.forceSummary as boolean | undefined,
       myIdeas: req.myIdeas as string[] | undefined,
       allSuggestedIdeas: req.allSuggestedIdeas as string[] | undefined,
+      ideaComments: req.ideaComments as Record<string, string> | undefined,
       summary: req.summary as string | undefined,
       isVoiceMode: req.isVoiceMode as boolean | undefined,
       isFirstVoiceMessage: req.isFirstVoiceMessage as boolean | undefined,
@@ -279,6 +310,18 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
       const allIdeas = [...(body.myIdeas || []), ...(body.allSuggestedIdeas || [])]
       const ideasList = allIdeas.length > 0 ? allIdeas.join('\n- ') : 'None yet'
 
+      // Build feedback text for ideas if available
+      let ideaFeedbackText = ''
+      if (body.ideaComments && Object.keys(body.ideaComments).length > 0) {
+        const feedbackLines = Object.entries(body.ideaComments)
+          .map(
+            ([idea, comment]) =>
+              `- Idea: "${idea}"\n  Feedback: ${comment}`
+          )
+          .join('\n\n')
+        ideaFeedbackText = `\n\nHere is the user's feedback on specific ideas (both ones they liked and ones they did not select):\n\n${feedbackLines}\n\nUse this feedback to avoid repeating ideas the user clearly dislikes and to better align with what resonates with them.`
+      }
+
       // Build context from chat history and summary
       let contextText = ''
       if (body.history && body.history.length > 0) {
@@ -296,7 +339,9 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
       ${contextText}Here is the user's interpretation summary (synthesized from the conversation above):
       
       ${summaryText}
-      
+
+      ${ideaFeedbackText}
+
       Here are ALL prior ideas (user + AI):
       - ${ideasList}
       
@@ -341,6 +386,18 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
 
       const summaryText = body.summary || body.experience || 'No summary available'
 
+      // Build feedback text for ideas if available
+      let ideaFeedbackText = ''
+      if (body.ideaComments && Object.keys(body.ideaComments).length > 0) {
+        const feedbackLines = Object.entries(body.ideaComments)
+          .map(
+            ([idea, comment]) =>
+              `- Idea: "${idea}"\n  Feedback: ${comment}`
+          )
+          .join('\n\n')
+        ideaFeedbackText = `\n\nAdditional context – the user's feedback on specific ideas (including ones they did not select):\n\n${feedbackLines}\n\nUse this feedback as evidence when inferring their assumptions and preferences.`
+      }
+
       systemPrompt = `You are a reflective bias analyst. The user is exploring the experience of "${body.experience}".
 
 You are given:
@@ -382,6 +439,8 @@ ${contextText}Summary of the experience: ${summaryText}
 
 User's ideas: ${body.myIdeas?.join(', ') || 'None'}
 All AI-suggested ideas: ${ideasList}
+
+User feedback on specific ideas (if any):${ideaFeedbackText || ' None provided.'}
 
 Rules:
 - INCLUDE the JSON block exactly once.

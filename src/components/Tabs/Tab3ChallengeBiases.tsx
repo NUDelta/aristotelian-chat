@@ -11,6 +11,7 @@ export function Tab3ChallengeBiases() {
     tab1History,
     myIdeas,
     allSuggestedIdeas,
+    ideaComments,
     biases,
     setBiases,
   } = useSession()
@@ -44,6 +45,7 @@ export function Tab3ChallengeBiases() {
           history: historyForAPI,
           myIdeas,
           allSuggestedIdeas,
+          ideaComments,
         }),
         signal,
       })

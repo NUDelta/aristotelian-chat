@@ -37,6 +37,7 @@ type SessionData = {
   biases: Bias[] | null
   biasDecisions: Record<string, 'accepted' | 'rejected' | undefined>
   biasUserIdeas: Record<string, string[]>
+  ideaComments: Record<string, string>
 }
 
 /**
@@ -190,6 +191,7 @@ export function convertImportToSessionData(importData: ExportData): {
   biases: Bias[] | null
   biasDecisions: Record<string, 'accepted' | 'rejected' | undefined>
   biasUserIdeas: Record<string, string[]>
+  ideaComments: Record<string, string>
 } {
   // Convert conversation back to ChatMessage format
   const tab1History: ChatMessage[] = importData.experience.conversation.map((msg, index) => ({
@@ -238,6 +240,7 @@ export function convertImportToSessionData(importData: ExportData): {
     biases: biases.length > 0 ? biases : null,
     biasDecisions,
     biasUserIdeas,
+    ideaComments: {},
   }
 }
 

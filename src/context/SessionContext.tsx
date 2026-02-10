@@ -9,6 +9,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [isFinishedTab1, setIsFinishedTab1] = useState<boolean>(false)
   const [myIdeas, setMyIdeas] = useState<string[]>([])
   const [allSuggestedIdeas, setAllSuggestedIdeas] = useState<string[]>([])
+  const [ideaComments, setIdeaComments] = useState<Record<string, string>>({})
   const [tab3ChallengingIdeas, setTab3ChallengingIdeas] = useState<string[]>([])
   const [biases, setBiases] = useState<Bias[] | null>(null)
   const [biasDecisions, setBiasDecisions] = useState<Record<string, 'accepted' | 'rejected' | undefined>>({})
@@ -20,6 +21,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setIsFinishedTab1(false)
     setMyIdeas([])
     setAllSuggestedIdeas([])
+    setIdeaComments({})
     setTab3ChallengingIdeas([])
     setBiases(null)
     setBiasDecisions({})
@@ -32,6 +34,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     tab1Summary: string | null
     myIdeas: string[]
     allSuggestedIdeas: string[]
+    ideaComments: Record<string, string>
     tab3ChallengingIdeas: string[]
     biases: Bias[] | null
     biasDecisions: Record<string, 'accepted' | 'rejected' | undefined>
@@ -43,6 +46,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setIsFinishedTab1(data.tab1Summary !== null)
     setMyIdeas(data.myIdeas)
     setAllSuggestedIdeas(data.allSuggestedIdeas)
+    setIdeaComments(data.ideaComments || {})
     setTab3ChallengingIdeas(data.tab3ChallengingIdeas)
     setBiases(data.biases)
     setBiasDecisions(data.biasDecisions)
@@ -64,6 +68,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setMyIdeas,
         allSuggestedIdeas,
         setAllSuggestedIdeas,
+        ideaComments,
+        setIdeaComments,
         tab3ChallengingIdeas,
         setTab3ChallengingIdeas,
         biases,

@@ -32,6 +32,8 @@ export type SessionContextType = {
   setMyIdeas: Dispatch<SetStateAction<string[]>>
   allSuggestedIdeas: string[]
   setAllSuggestedIdeas: Dispatch<SetStateAction<string[]>>
+  ideaComments: Record<string, string>
+  setIdeaComments: Dispatch<SetStateAction<Record<string, string>>>
   tab3ChallengingIdeas: string[]
   setTab3ChallengingIdeas: Dispatch<SetStateAction<string[]>>
 
@@ -52,6 +54,7 @@ export type SessionContextType = {
     tab1Summary: string | null
     myIdeas: string[]
     allSuggestedIdeas: string[]
+    ideaComments: Record<string, string>
     tab3ChallengingIdeas: string[]
     biases: Bias[] | null
     biasDecisions: Record<string, 'accepted' | 'rejected' | undefined>
