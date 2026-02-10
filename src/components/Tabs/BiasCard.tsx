@@ -18,11 +18,20 @@ export function BiasCard({ bias }: BiasCardProps) {
     setTab3ChallengingIdeas,
     biasUserIdeas,
     setBiasUserIdeas,
+    biasComments,
+    setBiasComments,
+    biasIdeaComments,
+    setBiasIdeaComments,
   } = useSession()
 
   const [newIdeaInput, setNewIdeaInput] = useState('')
+  const [isBiasCommentOpen, setIsBiasCommentOpen] = useState(false)
+  const [activeIdeaForComment, setActiveIdeaForComment] = useState<string | null>(null)
+  const [ideaCommentDraft, setIdeaCommentDraft] = useState('')
   const decision = biasDecisions[bias.id]
   const userIdeas = biasUserIdeas[bias.id] || []
+  const biasComment = biasComments[bias.id] || ''
+  const ideaCommentsForBias = biasIdeaComments[bias.id] || {}
 
   const handleReject = () => {
     setBiasDecisions((prev) => ({ ...prev, [bias.id]: 'rejected' }))
@@ -85,6 +94,46 @@ export function BiasCard({ bias }: BiasCardProps) {
   const isRejected = decision === 'rejected'
   const isAccepted = decision === 'accepted'
 
+  const handleBiasCommentChange = (value: string) => {
+    setBiasComments((prev) => {
+      const next = { ...prev }
+      if (value.trim()) {
+        next[bias.id] = value
+      } else {
+        delete next[bias.id]
+      }
+      return next
+    })
+  }
+
+  const openIdeaCommentEditor = (idea: string) => {
+    setActiveIdeaForComment(idea)
+    setIdeaCommentDraft(ideaCommentsForBias[idea] || '')
+  }
+
+  const handleSaveIdeaComment = () => {
+    if (!activeIdeaForComment) return
+    const trimmed = ideaCommentDraft.trim()
+    setBiasIdeaComments((prev) => {
+      const next = { ...prev }
+      const currentForBias = next[bias.id] || {}
+      const updatedForBias = { ...currentForBias }
+      if (trimmed) {
+        updatedForBias[activeIdeaForComment] = trimmed
+      } else {
+        delete updatedForBias[activeIdeaForComment]
+      }
+      if (Object.keys(updatedForBias).length > 0) {
+        next[bias.id] = updatedForBias
+      } else {
+        delete next[bias.id]
+      }
+      return next
+    })
+    setActiveIdeaForComment(null)
+    setIdeaCommentDraft('')
+  }
+
   return (
     <div
       className={`
@@ -94,9 +143,47 @@ export function BiasCard({ bias }: BiasCardProps) {
       `}
     >
       <h3 className="mb-2 text-base font-semibold text-gray-200">{bias.title}</h3>
-      <p className="mb-4 text-sm text-gray-300 whitespace-pre-line">
-        {bias.explanation}
-      </p>
+      <p className="mb-2 text-sm text-gray-300 whitespace-pre-line">{bias.explanation}</p>
+
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setIsBiasCommentOpen((prev) => !prev)}
+          className="flex items-center gap-1 text-xs text-gray-300 hover:text-white transition"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 10h8M8 14h5m-9 4l2-2h11a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"
+            />
+          </svg>
+          <span>{biasComment ? 'Edit your note on this bias' : 'Add a note on this bias'}</span>
+        </button>
+        {biasComment && (
+          <span className="text-[10px] uppercase tracking-wide text-purple-300">
+            Note saved
+          </span>
+        )}
+      </div>
+
+      {(isBiasCommentOpen || biasComment) && (
+        <div className="mb-4">
+          <textarea
+            value={biasComment}
+            onChange={(e) => handleBiasCommentChange(e.target.value)}
+            placeholder="How does this bias land for you? What feels accurate or off?"
+            className="w-full px-3 py-2 text-sm rounded-md border border-gray-500 bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400 resize-vertical"
+            rows={3}
+          />
+        </div>
+      )}
 
       <div className="mb-3 flex gap-2 items-center flex-wrap">
         <button
@@ -149,37 +236,140 @@ export function BiasCard({ bias }: BiasCardProps) {
             {/* AI-suggested challenging ideas (purple) */}
             {bias.challengingIdeas.map((idea) => {
               const isAdded = myIdeas.includes(idea)
+              const hasComment = !!ideaCommentsForBias[idea]
               return (
-                <button
-                  key={idea}
-                  onClick={() => handleToggleIdea(idea)}
-                  className={`px-4 py-2 rounded-full text-sm transition ${
-                    isAdded
-                      ? 'bg-gray-600 text-gray-400 border border-gray-500'
-                      : 'bg-purple-600 text-white hover:bg-purple-700'
-                  }`}
-                >
-                  {idea}
-                </button>
+                <div key={idea} className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleToggleIdea(idea)}
+                    className={`px-4 py-2 rounded-full text-sm transition ${
+                      isAdded
+                        ? 'bg-gray-600 text-gray-400 border border-gray-500'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                  >
+                    {idea}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openIdeaCommentEditor(idea)}
+                    className={`flex items-center justify-center rounded-full border w-7 h-7 text-xs transition ${
+                      hasComment
+                        ? 'border-purple-400 text-purple-200 bg-purple-600/20'
+                        : 'border-gray-500 text-gray-300 hover:border-purple-400 hover:text-purple-200'
+                    }`}
+                    aria-label="Add comment on this idea"
+                    title="Add comment on this idea"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 10h8M8 14h5m-9 4l2-2h11a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"
+                      />
+                    </svg>
+                  </button>
+                </div>
               )
             })}
             {/* User's own ideas (blue) */}
             {userIdeas.map((idea) => {
               const isAdded = myIdeas.includes(idea)
+              const hasComment = !!ideaCommentsForBias[idea]
               return (
-                <button
-                  key={idea}
-                  onClick={() => handleRemoveUserIdea(idea)}
-                  className={`px-4 py-2 rounded-full text-sm transition ${
-                    isAdded
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-gray-600 text-gray-400 border border-gray-500'
-                  }`}
-                >
-                  {idea}
-                </button>
+                <div key={idea} className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleRemoveUserIdea(idea)}
+                    className={`px-4 py-2 rounded-full text-sm transition ${
+                      isAdded
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-600 text-gray-400 border border-gray-500'
+                    }`}
+                  >
+                    {idea}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openIdeaCommentEditor(idea)}
+                    className={`flex items-center justify-center rounded-full border w-7 h-7 text-xs transition ${
+                      hasComment
+                        ? 'border-blue-400 text-blue-200 bg-blue-600/20'
+                        : 'border-gray-500 text-gray-300 hover:border-blue-400 hover:text-blue-200'
+                    }`}
+                    aria-label="Add comment on this idea"
+                    title="Add comment on this idea"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 10h8M8 14h5m-9 4l2-2h11a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"
+                      />
+                    </svg>
+                  </button>
+                </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {activeIdeaForComment && (
+        <div className="mt-4 border-t border-gray-600 pt-3">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <p className="text-xs text-gray-300">Your note on this idea for this bias:</p>
+              <p className="text-xs text-purple-200 font-medium">
+                “{activeIdeaForComment}”
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveIdeaForComment(null)
+                setIdeaCommentDraft('')
+              }}
+              className="text-[10px] text-gray-400 hover:text-gray-200 transition"
+            >
+              Close
+            </button>
+          </div>
+          <textarea
+            value={ideaCommentDraft}
+            onChange={(e) => setIdeaCommentDraft(e.target.value)}
+            placeholder="What do you like or not like about this idea, given this bias?"
+            className="w-full px-3 py-2 text-sm rounded-md border border-gray-500 bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400 resize-vertical"
+            rows={3}
+          />
+          <div className="mt-2 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIdeaCommentDraft('')
+                handleSaveIdeaComment()
+              }}
+              className="px-3 py-1 text-xs rounded-md border border-gray-500 text-gray-300 hover:bg-gray-600 transition"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveIdeaComment}
+              className="px-4 py-1.5 text-xs bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
+            >
+              Save Note
+            </button>
           </div>
         </div>
       )}

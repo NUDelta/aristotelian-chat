@@ -24,6 +24,8 @@ export type ExportData = {
     decision: 'accepted' | 'rejected' | undefined
     aiChallengingIdeas: string[]
     userAddedIdeas: string[]
+    biasComment?: string
+    ideaComments?: Record<string, string>
   }>
 }
 
@@ -38,6 +40,8 @@ type SessionData = {
   biasDecisions: Record<string, 'accepted' | 'rejected' | undefined>
   biasUserIdeas: Record<string, string[]>
   ideaComments: Record<string, string>
+  biasComments: Record<string, string>
+  biasIdeaComments: Record<string, Record<string, string>>
 }
 
 /**
@@ -69,6 +73,8 @@ export function formatSessionForExport(data: SessionData): ExportData {
       decision: data.biasDecisions[bias.id],
       aiChallengingIdeas: bias.challengingIdeas,
       userAddedIdeas: data.biasUserIdeas[bias.id] || [],
+      biasComment: data.biasComments[bias.id],
+      ideaComments: data.biasIdeaComments[bias.id],
     })),
   }
 }
@@ -192,6 +198,8 @@ export function convertImportToSessionData(importData: ExportData): {
   biasDecisions: Record<string, 'accepted' | 'rejected' | undefined>
   biasUserIdeas: Record<string, string[]>
   ideaComments: Record<string, string>
+  biasComments: Record<string, string>
+  biasIdeaComments: Record<string, Record<string, string>>
 } {
   // Convert conversation back to ChatMessage format
   const tab1History: ChatMessage[] = importData.experience.conversation.map((msg, index) => ({
@@ -224,9 +232,22 @@ export function convertImportToSessionData(importData: ExportData): {
 
   // Reconstruct biasUserIdeas
   const biasUserIdeas: Record<string, string[]> = {}
+  const biasComments: Record<string, string> = {}
+  const biasIdeaComments: Record<string, Record<string, string>> = {}
   importData.biases.forEach((bias) => {
     if (bias.userAddedIdeas.length > 0) {
       biasUserIdeas[bias.id] = bias.userAddedIdeas
+    }
+    if (typeof bias.biasComment === 'string' && bias.biasComment.trim().length > 0) {
+      biasComments[bias.id] = bias.biasComment
+    }
+    if (bias.ideaComments && typeof bias.ideaComments === 'object') {
+      const entries = Object.entries(bias.ideaComments).filter(
+        ([, comment]) => typeof comment === 'string' && comment.trim().length > 0
+      )
+      if (entries.length > 0) {
+        biasIdeaComments[bias.id] = Object.fromEntries(entries)
+      }
     }
   })
 
@@ -241,6 +262,8 @@ export function convertImportToSessionData(importData: ExportData): {
     biasDecisions,
     biasUserIdeas,
     ideaComments: {},
+    biasComments,
+    biasIdeaComments,
   }
 }
 

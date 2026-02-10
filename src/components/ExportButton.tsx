@@ -26,6 +26,8 @@ export function ExportButton({ onImportComplete }: ExportButtonProps = {}) {
     biasDecisions,
     biasUserIdeas,
     ideaComments,
+    biasComments,
+    biasIdeaComments,
     importSession,
   } = useSession()
 
@@ -41,7 +43,9 @@ export function ExportButton({ onImportComplete }: ExportButtonProps = {}) {
     myIdeas.length > 0 ||
     allSuggestedIdeas.length > 0 ||
     Object.keys(ideaComments).length > 0 ||
-    (biases && biases.length > 0)
+    (biases && biases.length > 0) ||
+    Object.keys(biasComments).length > 0 ||
+    Object.keys(biasIdeaComments).length > 0
 
   const handleExport = async (action: 'download' | 'copy') => {
     if (!hasDataToExport) {
@@ -62,6 +66,8 @@ export function ExportButton({ onImportComplete }: ExportButtonProps = {}) {
         biasDecisions,
         biasUserIdeas,
         ideaComments,
+        biasComments,
+        biasIdeaComments,
       })
 
       const jsonString = JSON.stringify(exportData, null, 2)

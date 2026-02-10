@@ -14,6 +14,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [biases, setBiases] = useState<Bias[] | null>(null)
   const [biasDecisions, setBiasDecisions] = useState<Record<string, 'accepted' | 'rejected' | undefined>>({})
   const [biasUserIdeas, setBiasUserIdeas] = useState<Record<string, string[]>>({})
+  const [biasComments, setBiasComments] = useState<Record<string, string>>({})
+  const [biasIdeaComments, setBiasIdeaComments] = useState<Record<string, Record<string, string>>>({})
 
   const resetSession = () => {
     setTab1History([])
@@ -26,6 +28,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setBiases(null)
     setBiasDecisions({})
     setBiasUserIdeas({})
+    setBiasComments({})
+    setBiasIdeaComments({})
   }
 
   const importSession = (data: {
@@ -39,6 +43,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     biases: Bias[] | null
     biasDecisions: Record<string, 'accepted' | 'rejected' | undefined>
     biasUserIdeas: Record<string, string[]>
+    biasComments: Record<string, string>
+    biasIdeaComments: Record<string, Record<string, string>>
   }) => {
     setExperience(data.experience)
     setTab1History(data.tab1History)
@@ -51,6 +57,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setBiases(data.biases)
     setBiasDecisions(data.biasDecisions)
     setBiasUserIdeas(data.biasUserIdeas)
+    setBiasComments(data.biasComments || {})
+    setBiasIdeaComments(data.biasIdeaComments || {})
   }
 
   return (
@@ -78,6 +86,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setBiasDecisions,
         biasUserIdeas,
         setBiasUserIdeas,
+        biasComments,
+        setBiasComments,
+        biasIdeaComments,
+        setBiasIdeaComments,
         resetSession,
         importSession,
       }}

@@ -30,6 +30,14 @@ type ChatRequest = {
   myIdeas?: string[]
   allSuggestedIdeas?: string[]
   ideaComments?: Record<string, string>
+  biasComments?: Record<string, string>
+  biasIdeaComments?: Record<string, Record<string, string>>
+  previousBiases?: {
+    id: string
+    title: string
+    explanation: string
+    challengingIdeas: string[]
+  }[]
   summary?: string
   isVoiceMode?: boolean
   isFirstVoiceMessage?: boolean
@@ -180,6 +188,82 @@ function validateChatRequest(body: unknown): { valid: boolean; error?: string; d
     }
   }
 
+  // Validate biasComments if provided
+  if (req.biasComments !== undefined) {
+    if (typeof req.biasComments !== 'object' || req.biasComments === null || Array.isArray(req.biasComments)) {
+      return { valid: false, error: 'biasComments must be an object mapping bias id to comment strings' }
+    }
+    const entries = Object.entries(req.biasComments as Record<string, unknown>)
+    for (const [biasId, comment] of entries) {
+      if (typeof biasId !== 'string' || typeof comment !== 'string') {
+        return {
+          valid: false,
+          error: 'biasComments must be a mapping from bias id (string) to comment (string)',
+        }
+      }
+      if (comment.length > MAX_COMMENT_LENGTH) {
+        return {
+          valid: false,
+          error: `Bias comments must be ${MAX_COMMENT_LENGTH} characters or less`,
+        }
+      }
+    }
+  }
+
+  // Validate biasIdeaComments if provided
+  if (req.biasIdeaComments !== undefined) {
+    if (typeof req.biasIdeaComments !== 'object' || req.biasIdeaComments === null || Array.isArray(req.biasIdeaComments)) {
+      return { valid: false, error: 'biasIdeaComments must be an object mapping bias id to idea-comment maps' }
+    }
+    const biasEntries = Object.entries(req.biasIdeaComments as Record<string, unknown>)
+    for (const [biasId, ideaMap] of biasEntries) {
+      if (typeof biasId !== 'string' || typeof ideaMap !== 'object' || ideaMap === null || Array.isArray(ideaMap)) {
+        return {
+          valid: false,
+          error: 'Each entry in biasIdeaComments must be an object mapping idea text to comment string',
+        }
+      }
+      for (const [idea, comment] of Object.entries(ideaMap as Record<string, unknown>)) {
+        if (typeof idea !== 'string' || typeof comment !== 'string') {
+          return {
+            valid: false,
+            error: 'biasIdeaComments must map idea text (string) to comment (string)',
+          }
+        }
+        if (comment.length > MAX_COMMENT_LENGTH) {
+          return {
+            valid: false,
+            error: `Bias idea comments must be ${MAX_COMMENT_LENGTH} characters or less`,
+          }
+        }
+      }
+    }
+  }
+
+  // Validate previousBiases if provided (shape only, no strict limits)
+  if (req.previousBiases !== undefined) {
+    if (!Array.isArray(req.previousBiases)) {
+      return { valid: false, error: 'previousBiases must be an array' }
+    }
+    for (const bias of req.previousBiases as unknown[]) {
+      if (!bias || typeof bias !== 'object') {
+        return { valid: false, error: 'Each previousBias must be an object' }
+      }
+      const b = bias as Record<string, unknown>
+      if (
+        typeof b.id !== 'string' ||
+        typeof b.title !== 'string' ||
+        typeof b.explanation !== 'string' ||
+        !Array.isArray(b.challengingIdeas)
+      ) {
+        return {
+          valid: false,
+          error: 'Each previousBias must have id, title, explanation (strings) and challengingIdeas (string[])',
+        }
+      }
+    }
+  }
+
   // Validate summary if provided
   if (req.summary !== undefined) {
     if (typeof req.summary !== 'string') {
@@ -197,6 +281,9 @@ function validateChatRequest(body: unknown): { valid: boolean; error?: string; d
       myIdeas: req.myIdeas as string[] | undefined,
       allSuggestedIdeas: req.allSuggestedIdeas as string[] | undefined,
       ideaComments: req.ideaComments as Record<string, string> | undefined,
+      biasComments: req.biasComments as Record<string, string> | undefined,
+      biasIdeaComments: req.biasIdeaComments as Record<string, Record<string, string>> | undefined,
+      previousBiases: req.previousBiases as ChatRequest['previousBiases'],
       summary: req.summary as string | undefined,
       isVoiceMode: req.isVoiceMode as boolean | undefined,
       isFirstVoiceMessage: req.isFirstVoiceMessage as boolean | undefined,
@@ -399,6 +486,44 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
         ideaFeedbackText = `\n\nAdditional context – the user's feedback on specific ideas (including ones they did not select):\n\n${feedbackLines}\n\nUse this feedback as evidence when inferring their assumptions and preferences.`
       }
 
+      // Build feedback text for existing biases and bias-level comments, if available
+      let previousBiasesText = ''
+      if (body.previousBiases && body.previousBiases.length > 0) {
+        const biasLines = body.previousBiases
+          .map((b, index) => {
+            const biasId = b.id || `bias_${index + 1}`
+            const biasComment = body.biasComments?.[biasId]
+            return [
+              `- Bias ${index + 1}: "${b.title}"`,
+              `  Explanation: ${b.explanation}`,
+              biasComment ? `  User note on this bias: ${biasComment}` : null,
+            ]
+              .filter(Boolean)
+              .join('\n')
+          })
+          .join('\n\n')
+
+        previousBiasesText = `\n\nHere is the PREVIOUS bias analysis and the user's notes about it (if any):\n\n${biasLines}\n\nUse this as a starting point. Pay close attention wherever the user pushed back on a bias or said it did not feel accurate.`
+      }
+
+      // Build per-bias idea comment text, if available
+      let biasIdeaCommentsText = ''
+      if (body.biasIdeaComments && Object.keys(body.biasIdeaComments).length > 0) {
+        const sections = Object.entries(body.biasIdeaComments)
+          .map(([biasId, ideaMap]) => {
+            const ideaLines = Object.entries(ideaMap)
+              .map(
+                ([idea, comment]) =>
+                  `    - Idea: "${idea}"\n      Feedback: ${comment}`
+              )
+              .join('\n')
+            return `- For bias id "${biasId}":\n${ideaLines}`
+          })
+          .join('\n\n')
+
+        biasIdeaCommentsText = `\n\nThe user also left notes on ideas under specific biases:\n\n${sections}\n\nUse these to refine which biases feel most alive for them and which ideas truly challenge those biases.`
+      }
+
       systemPrompt = `You are a reflective bias analyst. The user is exploring the experience of "${body.experience}".
 
 You are given:
@@ -406,15 +531,16 @@ You are given:
 - A summary of their interpretation.
 - Their own ideas for places/activities.
 - User feedback on specific ideas (if any).
+- (Optionally) a previous bias analysis, plus the user's notes on which parts did or did not feel accurate.
 - All ideas (their own + AI-suggested).
 
 Your job:
 
-1) Identify 3–7 meaningful biases or assumptions in how they interpret this experience and how they generate ideas. Focus on biases that coulb limit their ability to meaningfully engage with this experience or solve the problem they are facing.
+1) Identify 3–7 meaningful biases or assumptions in how they interpret this experience and how they generate ideas. Focus on biases that could limit their ability to meaningfully engage with this experience or solve the problem they are facing. If a previous bias analysis and user notes are provided, TREAT THIS AS A REVISION: refine, merge, drop, or rephrase biases so they better match the user's own sense of what is actually going on.
 
-2) For EACH bias:
+2) For EACH bias in your FINAL revised list:
    - Give it a short title.
-   - Provide a rich explanation in 2–4 sentences that uses concrete examples or phrases from their conversation, summary, or ideas and descries how a shift in this bias could help them to better engage with this experience or solve the problem they are facing.
+   - Provide a rich explanation in 2–4 sentences that uses concrete examples or phrases from their conversation, summary, ideas, and (if relevant) their feedback on previous biases, and describes how a shift in this bias could help them to better engage with this experience or solve the problem they are facing.
    - Generate 3–6 ideas that specifically challenge THIS bias.
 
 3) Return all biases in a single JSON marker block like:
@@ -443,6 +569,10 @@ User's ideas: ${body.myIdeas?.join(', ') || 'None'}
 All AI-suggested ideas: ${ideasList}
 
 User feedback on specific ideas (if any):${ideaFeedbackText || ' None provided.'}
+
+Additional context from previous analyses (if any):${previousBiasesText || ' None provided.'}
+
+User notes on ideas under specific biases (if any):${biasIdeaCommentsText || ' None provided.'}
 
 Rules:
 - INCLUDE the JSON block exactly once.
