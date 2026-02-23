@@ -37,7 +37,7 @@ export type SessionContextType = {
   tab3ChallengingIdeas: string[]
   setTab3ChallengingIdeas: Dispatch<SetStateAction<string[]>>
 
-  // Tab 3: Challenge Biases
+  // Tab 3: Challenge Internal Patterns
   biases: Bias[] | null
   setBiases: Dispatch<SetStateAction<Bias[] | null>>
   biasDecisions: Record<string, 'accepted' | 'rejected' | undefined>

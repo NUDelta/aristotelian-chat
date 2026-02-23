@@ -6,7 +6,7 @@ A guided human experience brainstorming chatbot built with Vite + React + TypeSc
 
 - **Tab 1: Define Experience** - Multi-turn Q&A to understand what a human experience means to the user
 - **Tab 2: Generate Ideas** - Expand user-provided ideas with AI suggestions using a chip system
-- **Tab 3: Challenge Biases** - Identify biases in thinking and generate ideas that challenge them. Users can also add their own ideas directly in Tab 3
+- **Tab 3: Challenge Internal Patterns** - Identify biases in thinking and generate ideas that challenge them. Users can also add their own ideas directly in Tab 3
 - **Export/Import Session** - Export entire interactions as JSON (download or copy to clipboard) or import previous sessions to review
 - **Onboarding & Help** - First-time user onboarding modal and always-available help button
 

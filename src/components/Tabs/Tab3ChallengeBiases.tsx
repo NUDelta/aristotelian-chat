@@ -148,7 +148,7 @@ export function Tab3ChallengeBiases() {
       <header className="shrink-0 border-b border-gray-700 px-6 py-4 bg-gray-800">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-200">Challenge Your Biases</h2>
+            <h2 className="text-2xl font-semibold text-gray-200">Challenge Your Internal Patterns</h2>
             <p className="text-sm text-gray-400 mt-1">
               Review how you might be narrowing this experience, then explore ideas that stretch your perspective.
             </p>

@@ -81,7 +81,7 @@ export const TAB_CONFIGS: TabConfig[] = [
   },
   {
     id: 'challenge-biases',
-    label: 'Tab 3: Challenge Biases',
+    label: 'Tab 3: Challenge Internal Patterns',
     component: Tab3ChallengeBiases,
     enabled: (session) => session.tab1Summary !== null && session.allSuggestedIdeas.length > 0,
     order: 3

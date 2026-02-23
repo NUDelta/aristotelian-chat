@@ -114,7 +114,7 @@ export function OnboardingModal() {
 
             {/* Tab 3 */}
             <section>
-              <h3 className="text-lg font-semibold text-gray-100 mb-2">Tab 3: Challenge Biases</h3>
+              <h3 className="text-lg font-semibold text-gray-100 mb-2">Tab 3: Challenge Internal Patterns</h3>
               <ul className="text-sm space-y-2 list-disc list-inside ml-2">
                 <li>After generating ideas, the AI will identify potential biases in your thinking</li>
                 <li>Review each bias and decide if it resonates with you or not</li>
