@@ -102,7 +102,28 @@ export function extractBiases(parsed: ParsedOutput[]): Bias[] {
       Array.isArray(item.challengingIdeas) &&
       item.challengingIdeas.every((idea) => typeof idea === 'string')
     ) {
-      validated.push(item as Bias)
+      const bias = item as Bias
+
+      // Optional fields: validate shape if present, but don't discard the bias if missing
+      if (
+        bias.protectiveFunction !== undefined &&
+        !(
+          Array.isArray(bias.protectiveFunction) &&
+          bias.protectiveFunction.every((pf) => typeof pf === 'string')
+        )
+      ) {
+        // Skip invalid protectiveFunction while keeping the rest of the bias
+        delete (bias as any).protectiveFunction
+      }
+
+      if (
+        bias.bridgeBelief !== undefined &&
+        typeof bias.bridgeBelief !== 'string'
+      ) {
+        delete (bias as any).bridgeBelief
+      }
+
+      validated.push(bias)
     }
   }
 

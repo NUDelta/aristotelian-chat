@@ -145,6 +145,30 @@ export function BiasCard({ bias }: BiasCardProps) {
       <h3 className="mb-2 text-base font-semibold text-gray-200">{bias.title}</h3>
       <p className="mb-2 text-sm text-gray-300 whitespace-pre-line">{bias.explanation}</p>
 
+      {bias.protectiveFunction && bias.protectiveFunction.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs font-semibold uppercase text-gray-300 mb-1">
+            What this bias is protecting you from
+          </p>
+          <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
+            {bias.protectiveFunction.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {bias.bridgeBelief && (
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase text-gray-300 mb-1">
+            Small next belief
+          </p>
+          <p className="text-sm text-gray-300 whitespace-pre-line">
+            {bias.bridgeBelief}
+          </p>
+        </div>
+      )}
+
       <div className="mb-4 flex items-center justify-between gap-2">
         <button
           type="button"

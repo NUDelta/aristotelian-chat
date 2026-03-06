@@ -11,6 +11,8 @@ export type Bias = {
   id: string
   title: string
   explanation: string
+  protectiveFunction?: string[]
+  bridgeBelief?: string
   challengingIdeas: string[]
 }
 

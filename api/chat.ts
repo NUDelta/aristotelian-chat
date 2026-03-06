@@ -36,6 +36,8 @@ type ChatRequest = {
     id: string
     title: string
     explanation: string
+    protectiveFunction?: string[]
+    bridgeBelief?: string
     challengingIdeas: string[]
   }[]
   summary?: string
@@ -259,6 +261,29 @@ function validateChatRequest(body: unknown): { valid: boolean; error?: string; d
         return {
           valid: false,
           error: 'Each previousBias must have id, title, explanation (strings) and challengingIdeas (string[])',
+        }
+      }
+
+      if (
+        b.protectiveFunction !== undefined &&
+        !(
+          Array.isArray(b.protectiveFunction) &&
+          b.protectiveFunction.every((pf) => typeof pf === 'string')
+        )
+      ) {
+        return {
+          valid: false,
+          error: 'protectiveFunction must be an array of strings if provided on previousBiases items',
+        }
+      }
+
+      if (
+        b.bridgeBelief !== undefined &&
+        typeof b.bridgeBelief !== 'string'
+      ) {
+        return {
+          valid: false,
+          error: 'bridgeBelief must be a string if provided on previousBiases items',
         }
       }
     }
@@ -496,6 +521,12 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
             return [
               `- Bias ${index + 1}: "${b.title}"`,
               `  Explanation: ${b.explanation}`,
+              b.protectiveFunction && b.protectiveFunction.length
+                ? `  Protective function:\n    - ${b.protectiveFunction.join('\n    - ')}`
+                : null,
+              b.bridgeBelief
+                ? `  Bridge belief: ${b.bridgeBelief}`
+                : null,
               biasComment ? `  User note on this bias: ${biasComment}` : null,
             ]
               .filter(Boolean)
@@ -541,7 +572,10 @@ Your job:
 2) For EACH bias in your FINAL revised list:
    - Give it a short title.
    - Provide a rich explanation in 2–4 sentences that uses concrete examples or phrases from their conversation, summary, ideas, and (if relevant) their feedback on previous biases, and describes how a shift in this bias could help them to better engage with this experience or solve the problem they are facing.
+   - protectiveFunction: 1–3 bullets describing what this bias is trying to protect them from.
+   - bridgeBelief: 1–2 sentences stating the smallest believable belief that could connect current belief → alternative belief.
    - Generate 3–6 ideas that specifically challenge THIS bias.
+
 
 3) Return all biases in a single JSON marker block like:
 
@@ -553,6 +587,11 @@ Your job:
       "id": "bias_1",
       "title": "Prefers nature-based retreat",
       "explanation": "You tend to associate rest after burnout with being in quiet, natural spaces. For example, you mentioned parks, forests, and cabins, and didn't mention any social or urban examples. This suggests you see calm and solitude in nature as the 'correct' way to rest.",
+      "protectiveFunction": [
+        "Avoiding situations that could feel overstimulating or socially demanding",
+        "Protecting your energy by defaulting to solitude instead of experimenting with low-stakes social rest"
+      ],
+      "bridgeBelief": "Maybe there are small, low-pressure social or urban experiences that can still feel restorative without overwhelming me.",
       "challengingIdeas": [
         "Attend a low-key community art night in the city",
         "Co-work in a cozy cafe with a friend",
