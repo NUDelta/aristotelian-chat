@@ -143,31 +143,39 @@ export function BiasCard({ bias }: BiasCardProps) {
       `}
     >
       <h3 className="mb-2 text-base font-semibold text-gray-200">{bias.title}</h3>
-      <p className="mb-2 text-sm text-gray-300 whitespace-pre-line">{bias.explanation}</p>
+      <p className="mb-3 text-sm text-gray-300 whitespace-pre-line">{bias.explanation}</p>
 
-      {bias.protectiveFunction && bias.protectiveFunction.length > 0 && (
-        <div className="mb-3">
-          <p className="text-xs font-semibold uppercase text-gray-300 mb-1">
-            What this bias is protecting you from
+      {(bias.protectiveFunction && bias.protectiveFunction.length > 0) || bias.bridgeBelief ? (
+        <div className="mb-4 rounded-lg border border-purple-500/70 bg-purple-900/20 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-purple-200 mb-2">
+            Why this bias shows up & how to shift it
           </p>
-          <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-            {bias.protectiveFunction.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
 
-      {bias.bridgeBelief && (
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase text-gray-300 mb-1">
-            Small next belief
-          </p>
-          <p className="text-sm text-gray-300 whitespace-pre-line">
-            {bias.bridgeBelief}
-          </p>
+          {bias.protectiveFunction && bias.protectiveFunction.length > 0 && (
+            <div className="mb-3">
+              <p className="text-[11px] font-semibold uppercase text-gray-200 mb-1">
+                Protective function
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-100 space-y-1">
+                {bias.protectiveFunction.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {bias.bridgeBelief && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase text-gray-200 mb-1">
+                Bridge belief
+              </p>
+              <p className="text-sm text-gray-100 whitespace-pre-line">
+                {bias.bridgeBelief}
+              </p>
+            </div>
+          )}
         </div>
-      )}
+      ) : null}
 
       <div className="mb-4 flex items-center justify-between gap-2">
         <button
