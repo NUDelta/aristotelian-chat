@@ -431,7 +431,7 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
               `- Idea: "${idea}"\n  Feedback: ${comment}`
           )
           .join('\n\n')
-        ideaFeedbackText = `\n\nHere is the user's feedback on specific ideas (both ones they liked and ones they did not select):\n\n${feedbackLines}\n\nUse this feedback to avoid repeating ideas the user clearly dislikes and to better align with what resonates with them.`
+        ideaFeedbackText = `\n\nHere is the user's feedback on specific ideas (both ones they liked and ones they did not select):\n\n${feedbackLines}\n\nUse this feedback to avoid repeating ideas the user clearly dislikes and to better align with what resonates with them.m The ideas should be somewhat`
       }
 
       // Build context from chat history and summary
@@ -446,8 +446,9 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
       // Use summary if provided, otherwise fall back to experience name
       const summaryText = body.summary || body.experience || 'No summary available'
 
-      systemPrompt = `You are generating new ideas for activities/places related to the experience.
-
+      systemPrompt = `You are generating new ideas related to the problem the user is facing. These ideas can be activities, places, actions, or anything else that the user might do to address the problem. The ideas should be practical and achievable, not abstract or theoretical.
+  
+      The user is facing the problem of "${body.experience}".
       ${contextText}Here is the user's interpretation summary (synthesized from the conversation above):
       
       ${summaryText}
@@ -463,6 +464,8 @@ If the request includes forceSummary=true, you MUST immediately produce a summar
       3. EXTEND those themes into NEW, CREATIVE ideas that align with those patterns but are distinct from what was already discussed.
       4. Think about what the themes suggest about the user's deeper needs and preferences, then generate ideas that serve those needs in fresh ways.
       5. Do a pass over the ideas and identify if they sound like AI-generated ideas, if so, remove them and generate new ideas that feel more human and natural.
+      6. The user's interpretation, or current world frame, should not be strongly challenged by the ideas you generate. These ideas should be ideas they might have come up with themselves.
+      7. If the ideas feedback is given, listen to what the user said to better understand their preferences and needs, and generate ideas that align with those preferences and needs.
       
       Examples of what NOT to do:
       - If the user mentioned "going to a park," don't suggest "visit a different park" or "go to Central Park"
